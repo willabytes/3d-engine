@@ -1,0 +1,258 @@
+pub mod matrix {
+    #[derive(Debug, Clone, Copy)]
+    pub struct Vec3 {
+        pub x_1: f32,
+        pub x_2: f32,
+        pub x_3: f32,
+    }
+
+    // Scalar product
+    impl std::ops::Mul<Vec3> for Vec3 {
+        type Output = f32;
+
+        fn mul(self, _rhs: Vec3) -> f32 {
+            self.x_1 * _rhs.x_1 +
+            self.x_2 * _rhs.x_2 +
+            self.x_3 * _rhs.x_3
+        }
+    }
+
+    // Cross product
+    impl std::ops::Rem<Vec3> for Vec3 {
+        type Output = Vec3;
+
+        fn rem(self, _rhs: Vec3) -> Vec3 {
+            Vec3 {
+                x_1: self.x_2 * _rhs.x_3 - self.x_3 * _rhs.x_2,
+                x_2: self.x_3 * _rhs.x_1 - self.x_1 * _rhs.x_3,
+                x_3: self.x_1 * _rhs.x_2 - self.x_2 * _rhs.x_1,
+            }
+        }
+    }
+
+    impl std::fmt::Display for Vec3 {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}\n{}\n{}",
+                self.x_1,
+                self.x_2,
+                self.x_3
+            )
+        }
+    }
+
+    pub const UNIT_MATRIX: Mat3x3 = Mat3x3 {
+        x_11: 1.0, x_12: 0.0, x_13: 0.0,
+        x_21: 0.0, x_22: 1.0, x_23: 0.0,
+        x_31: 0.0, x_32: 0.0, x_33: 1.0,
+    };
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Mat3x3 {
+        pub x_11: f32, pub x_12: f32, pub x_13: f32,
+        pub x_21: f32, pub x_22: f32, pub x_23: f32,
+        pub x_31: f32, pub x_32: f32, pub x_33: f32,
+    }    
+
+    impl Mat3x3 {
+        pub fn new(values: [f32; 9]) -> Self {
+            Self {
+                x_11: values[0], x_12: values[1], x_13: values[2],
+                x_21: values[3], x_22: values[4], x_23: values[5],
+                x_31: values[6], x_32: values[7], x_33: values[8],
+            }
+        }
+
+        pub fn determinant(&self) -> f32 {
+            self.x_11 * self.x_22 * self.x_33 +
+            self.x_12 * self.x_23 * self.x_31 +
+            self.x_13 * self.x_21 * self.x_32 -
+            self.x_11 * self.x_23 * self.x_32 -
+            self.x_12 * self.x_21 * self.x_33 -
+            self.x_13 * self.x_22 * self.x_31
+        }
+
+        pub fn inverse(&self) -> Mat3x3 {
+            let temp_11 = self.x_22 * self.x_33 - self.x_23 * self.x_32;
+            let temp_21 = self.x_23 * self.x_31 - self.x_21 * self.x_33;
+            let temp_31 = self.x_21 * self.x_32 - self.x_22 * self.x_31;
+
+            let det = self.x_11 * temp_11 + self.x_12 * temp_21 + self.x_13 * temp_31;
+
+            Mat3x3 {
+                x_11: (self.x_22 * self.x_33 - self.x_23 * self.x_32) / det,
+                x_12: (self.x_13 * self.x_32 - self.x_12 * self.x_33) / det,
+                x_13: (self.x_12 * self.x_23 - self.x_13 * self.x_22) / det,
+                x_21: (self.x_23 * self.x_31 - self.x_21 * self.x_33) / det,
+                x_22: (self.x_11 * self.x_33 - self.x_13 * self.x_31) / det,
+                x_23: (self.x_13 * self.x_21 - self.x_11 * self.x_23) / det,
+                x_31: (self.x_21 * self.x_32 - self.x_22 * self.x_31) / det,
+                x_32: (self.x_12 * self.x_31 - self.x_11 * self.x_32) / det,
+                x_33: (self.x_11 * self.x_22 - self.x_12 * self.x_21) / det,
+            }
+        }
+
+        /* Without Rule of Sarrus
+        pub fn inverse(&self) -> Mat3x3 {
+            let det = self.determinant();
+            Mat3x3 {
+                x_11: (self.x_22 * self.x_33 - self.x_23 * self.x_32) / det,
+                x_12: (self.x_13 * self.x_32 - self.x_12 * self.x_33) / det,
+                x_13: (self.x_12 * self.x_23 - self.x_13 * self.x_22) / det,
+                x_21: (self.x_23 * self.x_31 - self.x_21 * self.x_33) / det,
+                x_22: (self.x_11 * self.x_33 - self.x_13 * self.x_31) / det,
+                x_23: (self.x_13 * self.x_21 - self.x_11 * self.x_23) / det,
+                x_31: (self.x_21 * self.x_32 - self.x_22 * self.x_31) / det,
+                x_32: (self.x_12 * self.x_31 - self.x_11 * self.x_32) / det,
+                x_33: (self.x_11 * self.x_22 - self.x_12 * self.x_21) / det,
+            }
+            
+            // Pimp: Implement more efficient way of det in this case. 
+            // Rule of Sarrus: det = self.x_11 * new.x_11 + self.x_12 * new.x_21 + self.x_13 * new.x_31
+        }
+        */
+    }
+
+    // Mat3x3 addition
+    impl std::ops::Add<Mat3x3> for Mat3x3 {
+        type Output = Mat3x3;
+
+        fn add(self, _rhs: Mat3x3) -> Mat3x3 {
+            Mat3x3 {
+                x_11: self.x_11 + _rhs.x_11,
+                x_12: self.x_12 + _rhs.x_12,
+                x_13: self.x_13 + _rhs.x_13,
+                x_21: self.x_21 + _rhs.x_21,
+                x_22: self.x_22 + _rhs.x_22,
+                x_23: self.x_23 + _rhs.x_23,
+                x_31: self.x_31 + _rhs.x_31,
+                x_32: self.x_32 + _rhs.x_32,
+                x_33: self.x_33 + _rhs.x_33,
+            }
+        }
+    }
+
+    // Mat3x3 subtraction
+    impl std::ops::Sub<Mat3x3> for Mat3x3 {
+        type Output = Mat3x3;
+
+        fn sub(self, _rhs: Mat3x3) -> Mat3x3 {
+            Mat3x3 {
+                x_11: self.x_11 - _rhs.x_11,
+                x_12: self.x_12 - _rhs.x_12,
+                x_13: self.x_13 - _rhs.x_13,
+                x_21: self.x_21 - _rhs.x_21,
+                x_22: self.x_22 - _rhs.x_22,
+                x_23: self.x_23 - _rhs.x_23,
+                x_31: self.x_31 - _rhs.x_31,
+                x_32: self.x_32 - _rhs.x_32,
+                x_33: self.x_33 - _rhs.x_33,
+            }
+        }
+    }
+
+    // Mat3x3-f32 multiplication
+    impl std::ops::Mul<f32> for Mat3x3 {
+        type Output = Mat3x3;
+
+        fn mul(self, _rhs: f32) -> Mat3x3 {
+            Mat3x3 {
+                x_11: self.x_11 * _rhs,
+                x_12: self.x_12 * _rhs,
+                x_13: self.x_13 * _rhs,
+                x_21: self.x_21 * _rhs,
+                x_22: self.x_22 * _rhs,
+                x_23: self.x_23 * _rhs,
+                x_31: self.x_31 * _rhs,
+                x_32: self.x_32 * _rhs,
+                x_33: self.x_33 * _rhs,
+            }
+        }
+    }
+
+    // Mat3x3-f32 division
+    impl std::ops::Div<f32> for Mat3x3 {
+        type Output = Mat3x3;
+
+        fn div(self, _rhs: f32) -> Mat3x3 {
+            Mat3x3 {
+                x_11: self.x_11 / _rhs,
+                x_12: self.x_12 / _rhs,
+                x_13: self.x_13 / _rhs,
+                x_21: self.x_21 / _rhs,
+                x_22: self.x_22 / _rhs,
+                x_23: self.x_23 / _rhs,
+                x_31: self.x_31 / _rhs,
+                x_32: self.x_32 / _rhs,
+                x_33: self.x_33 / _rhs,
+            }
+        }
+    }
+
+
+    // Mat3x3-Mat3x3 multiplication
+    impl std::ops::Mul<Mat3x3> for Mat3x3 {
+        type Output = Mat3x3;
+
+        fn mul(self, _rhs: Mat3x3) -> Mat3x3 {
+            Mat3x3 {
+                x_11: self.x_11 * _rhs.x_11 + self.x_12 * _rhs.x_21 + self.x_13 * _rhs.x_31,
+                x_12: self.x_11 * _rhs.x_12 + self.x_12 * _rhs.x_22 + self.x_13 * _rhs.x_32,
+                x_13: self.x_11 * _rhs.x_13 + self.x_12 * _rhs.x_23 + self.x_13 * _rhs.x_33,
+                x_21: self.x_21 * _rhs.x_11 + self.x_22 * _rhs.x_21 + self.x_23 * _rhs.x_31,
+                x_22: self.x_21 * _rhs.x_12 + self.x_22 * _rhs.x_22 + self.x_23 * _rhs.x_32,
+                x_23: self.x_21 * _rhs.x_13 + self.x_22 * _rhs.x_23 + self.x_23 * _rhs.x_33,
+                x_31: self.x_31 * _rhs.x_11 + self.x_32 * _rhs.x_21 + self.x_33 * _rhs.x_31,
+                x_32: self.x_31 * _rhs.x_12 + self.x_32 * _rhs.x_22 + self.x_33 * _rhs.x_32,
+                x_33: self.x_31 * _rhs.x_13 + self.x_32 * _rhs.x_23 + self.x_33 * _rhs.x_33,
+            }
+        }
+    }
+
+    // Mat3x3-Vec3 multiplication
+    impl std::ops::Mul<Vec3> for Mat3x3 {
+        type Output = Vec3;
+
+        fn mul(self, _rhs: Vec3) -> Vec3 {
+            Vec3 {
+                x_1: self.x_11 * _rhs.x_1 + self.x_12 * _rhs.x_2 + self.x_13 * _rhs.x_3,
+                x_2: self.x_21 * _rhs.x_1 + self.x_22 * _rhs.x_2 + self.x_23 * _rhs.x_3,
+                x_3: self.x_31 * _rhs.x_1 + self.x_32 * _rhs.x_2 + self.x_33 * _rhs.x_3,
+            }
+        }
+    }
+
+    // Mat3x3 negation
+    impl std::ops::Neg for Mat3x3 {
+        type Output = Mat3x3;
+
+        fn neg(self) -> Mat3x3 {
+            Mat3x3 {
+                x_11: -self.x_11,
+                x_12: -self.x_12,
+                x_13: -self.x_13,
+                x_21: -self.x_21,
+                x_22: -self.x_22,
+                x_23: -self.x_23,
+                x_31: -self.x_31,
+                x_32: -self.x_32,
+                x_33: -self.x_33,
+            }
+        }
+    }
+
+    impl std::fmt::Display for Mat3x3 {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}   {}   {}\n{}   {}   {}\n{}   {}   {}",
+                self.x_11,
+                self.x_12,
+                self.x_13,
+                self.x_21,
+                self.x_22,
+                self.x_23,
+                self.x_31,
+                self.x_32,
+                self.x_33
+            )
+        }
+    }
+}

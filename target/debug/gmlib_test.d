@@ -1,0 +1,1 @@
+/home/w/programming/gmlib_test/target/debug/gmlib_test: /home/w/programming/gmlib_test/src/camera.rs /home/w/programming/gmlib_test/src/gmlib.rs /home/w/programming/gmlib_test/src/lib.rs /home/w/programming/gmlib_test/src/main.rs
