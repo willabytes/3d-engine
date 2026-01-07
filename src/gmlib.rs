@@ -207,12 +207,16 @@ pub mod matrix {
             }
         }
 
-        pub fn norm(self) -> Self {
-            self / f32::sqrt(
+        pub fn magnitude(self) -> f32 {
+            f32::sqrt(
                 self.x_1 * self.x_1 +
                 self.x_2 * self.x_2 +
                 self.x_3 * self.x_3
             )
+        }
+
+        pub fn normalize(self) -> Self {
+            self / self.magnitude()
         }
 
         pub fn to_array(self) -> [f32; 3] {
@@ -1165,4 +1169,69 @@ pub mod matrix {
         x_31: 0.0, x_32: 0.0, x_33: 1.0, x_34: 0.0,
         x_41: 0.0, x_42: 0.0, x_43: 0.0, x_44: 1.0,
     };
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Quaternion {
+        pub r: f32,
+        pub i: f32,
+        pub j: f32,
+        pub k: f32,
+    }
+
+    impl std::ops::Mul<Self> for Quaternion {
+        type Output = Self;
+
+        fn mul(self, rhs: Self) -> Self {
+            Self {
+                r: self.r * rhs.r - self.i * rhs.i - self.j * rhs.j - self.k * rhs.k,
+                i: self.r * rhs.i + self.i * rhs.r + self.j * rhs.k - self.k * rhs.j,
+                j: self.r * rhs.j - self.i * rhs.k + self.j * rhs.r + self.k * rhs.i,
+                k: self.r * rhs.k + self.i * rhs.j - self.j * rhs.i + self.k * rhs.r,
+            }
+        }
+    } 
+
+    impl Quaternion {
+        pub fn conjugate(self) -> Self {
+            Self {
+                r: self.r,
+                i: -self.i,
+                j: -self.j,
+                k: -self.k,
+            }
+        }
+
+        pub fn rotate(point: Vec3, axis: Vec3, angle: f32) -> Vec3 {
+            let rotation = axis.normalize() * (0.5 * angle).sin();
+
+            let rotation = Quaternion {
+                r: (0.5 * angle).cos(),
+                i: rotation.x_1,
+                j: rotation.x_3,
+                k: rotation.x_2,
+            };
+
+            // x_3 = constant for j, and x_2 = constant for k due to the linear algebra system
+            // using left handed coordinate system, and quaternion system using right handed. Will
+            // fix.
+            let point = Quaternion {
+                r: 0.0,
+                i: point.x_1,
+                j: point.x_3,
+                k: point.x_2,
+            };
+
+            let result = rotation * point * rotation.conjugate();
+
+            Vec3 {
+                x_1: result.i,
+                x_2: result.k,
+                x_3: result.j,
+            }
+        }
+
+        pub fn rotate_offset(point: Vec3, axis: Vec3, offset: Vec3, angle: f32) -> Vec3 {
+            Self::rotate(point - offset, axis, angle) + offset
+        }
+    }
 }

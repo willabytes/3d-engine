@@ -3,17 +3,31 @@ mod wgpu_3d_engine;
 
 use wgpu_3d_engine::run;
 
+/*
 fn main() {
     run().unwrap();
 }
+*/
 
-/*
+
 mod gmlib;
 mod camera;
 use crate::gmlib::matrix::*;
 use crate::camera::camera::*;
 use std::f32::consts::PI;
 
+fn main() {
+    let point = Vec3::from([1.0, 2.0, 1.0]);
+    let axis = Vec3::from([1.0, 0.0, 0.0]);
+    let offset = Vec3::from([1.0, 1.0, 1.0]);
+    let angle: f32 = PI / 2.0;
+
+    let rotated_point = Quaternion::rotate_offset(point, axis, offset, angle);
+
+    println!("{}", rotated_point);
+}
+
+/*
 /*
 struct Camera {
     position: Vec3,
