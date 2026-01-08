@@ -1184,9 +1184,10 @@ pub mod matrix {
         fn mul(self, rhs: Self) -> Self {
             Self {
                 r: self.r * rhs.r - self.i * rhs.i - self.j * rhs.j - self.k * rhs.k,
-                i: self.r * rhs.i + self.i * rhs.r + self.j * rhs.k - self.k * rhs.j,
-                j: self.r * rhs.j - self.i * rhs.k + self.j * rhs.r + self.k * rhs.i,
-                k: self.r * rhs.k + self.i * rhs.j - self.j * rhs.i + self.k * rhs.r,
+                i: self.r * rhs.i + self.i * rhs.r - self.j * rhs.k + self.k * rhs.j,
+                j: self.r * rhs.j + self.i * rhs.k + self.j * rhs.r - self.k * rhs.i,
+                k: self.r * rhs.k - self.i * rhs.j + self.j * rhs.i + self.k * rhs.r,
+
             }
         }
     } 
@@ -1217,21 +1218,31 @@ pub mod matrix {
             let point = Quaternion {
                 r: 0.0,
                 i: point.x_1,
-                j: point.x_3,
-                k: point.x_2,
+                j: point.x_2,
+                k: point.x_3,
             };
 
             let result = rotation * point * rotation.conjugate();
 
             Vec3 {
                 x_1: result.i,
-                x_2: result.k,
-                x_3: result.j,
+                x_2: result.j,
+                x_3: result.k,
             }
         }
 
         pub fn rotate_offset(point: Vec3, axis: Vec3, offset: Vec3, angle: f32) -> Vec3 {
             Self::rotate(point - offset, axis, angle) + offset
+        }
+
+        // Multiplication for right-handed quaternion
+        pub fn right_hand_mul(lhs: Quaternion, rhs: Quaternion) -> Self {
+            Self {
+                r: lhs.r * rhs.r - lhs.i * rhs.i - lhs.j * rhs.j - lhs.k * rhs.k,
+                i: lhs.r * rhs.i + lhs.i * rhs.r + lhs.j * rhs.k - lhs.k * rhs.j,
+                j: lhs.r * rhs.j - lhs.i * rhs.k + lhs.j * rhs.r + lhs.k * rhs.i,
+                k: lhs.r * rhs.k + lhs.i * rhs.j - lhs.j * rhs.i + lhs.k * rhs.r,
+            }
         }
     }
 }
