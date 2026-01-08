@@ -1212,9 +1212,6 @@ pub mod matrix {
                 k: rotation.x_2,
             };
 
-            // x_3 = constant for j, and x_2 = constant for k due to the linear algebra system
-            // using left handed coordinate system, and quaternion system using right handed. Will
-            // fix.
             let point = Quaternion {
                 r: 0.0,
                 i: point.x_1,
