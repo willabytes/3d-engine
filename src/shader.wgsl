@@ -29,8 +29,6 @@ fn vs_main(model: VertexInput) -> VertexOutput {
         vec3<f32>(0.0, -model.sin_vertical, model.cos_vertical),
     );
 
-    var kek = model.cos_horizontal;
-
     var inverse_horizontal = mat3x3<f32>(
         vec3<f32>(model.cos_horizontal, 0.0, -model.sin_horizontal),
         vec3<f32>(0.0, 1.0, 0.0),
@@ -48,9 +46,9 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     var result_2 = result_1 / result_1.z;
 
     out.color = model.color;
-	out.clip_position = vec4<f32>(result_2.x, result_2.y, 0.0, 1.0);
-	//out.clip_position = vec4<f32>(result_1.x, result_1.y, 0.0, 1.0);
-	//out.clip_position = vec4<f32>(model.position.x, model.position.y, 0.0, 1.0);
+	out.clip_position = vec4<f32>(result_2, 1.0);
+	//out.clip_position = vec4<f32>(result_1, 1.0);
+	//out.clip_position = vec4<f32>(model.position, 1.0);
 
 	return out;
 }
