@@ -37,7 +37,8 @@ pub struct App {
 pub struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
-    camera: Camera,
+    camera: CameraMatrixElements,
+    scale_factor: f32,
 }
 
 #[repr(C)]
@@ -56,6 +57,26 @@ impl Camera {
             angle_horizontal: 0.0,
             angle_vertical: 0.0,
             scale_factor,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct CameraMatrixElements {
+    sin_horizontal: f32,
+    cos_horizontal: f32,
+    sin_vertical: f32,
+    cos_vertical: f32,
+}
+
+impl CameraMatrixElements {
+    fn new(angle_horizontal: f32, angle_vertical: f32) -> Self {
+        Self {
+            sin_horizontal: f32::sin(angle_horizontal),
+            cos_horizontal: f32::cos(angle_horizontal),
+            sin_vertical: f32::sin(angle_horizontal),
+            cos_vertical: f32::cos(angle_horizontal),
         }
     }
 }
@@ -88,21 +109,26 @@ impl Vertex {
                 VertexAttribute {
                     offset: size_of::<[f32; 6]>() as BufferAddress,
                     shader_location: 2,
-                    format: VertexFormat::Float32x3,
+                    format: VertexFormat::Float32,
                 },
                 VertexAttribute {
-                    offset: size_of::<[f32; 9]>() as BufferAddress,
+                    offset: size_of::<[f32; 7]>() as BufferAddress,
                     shader_location: 3,
                     format: VertexFormat::Float32,
                 },
                 VertexAttribute {
-                    offset: size_of::<[f32; 10]>() as BufferAddress,
+                    offset: size_of::<[f32; 8]>() as BufferAddress,
                     shader_location: 4,
                     format: VertexFormat::Float32,
                 },
                 VertexAttribute {
-                    offset: size_of::<[f32; 11]>() as BufferAddress,
+                    offset: size_of::<[f32; 9]>() as BufferAddress,
                     shader_location: 5,
+                    format: VertexFormat::Float32,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 10]>() as BufferAddress,
+                    shader_location: 6,
                     format: VertexFormat::Float32,
                 },
             ]
@@ -110,20 +136,26 @@ impl Vertex {
     }
 }
 
-static CAMERA: Camera = Camera {
-    position: [0.0, 0.0, 0.0],
-    angle_horizontal: 0.0,
-    angle_vertical: 1.0,
-    scale_factor: 0.10,
+use std::f32::consts::*;
+const angle_v: f32 = PI / 8.0;
+const angle_h: f32 = PI / 8.0;
+
+static CAMERA: CameraMatrixElements = CameraMatrixElements {
+    sin_horizontal: 0.383,
+    cos_horizontal: 0.923,
+    sin_vertical: 0.383,
+    cos_vertical: 0.923,
 };
 
 static VERTICES: &[Vertex] = &[
-    Vertex { position: [0.0, 0.0, 0.0], color: [1.0, 1.0, 0.0], camera: CAMERA },
-    Vertex { position: [1.0, 0.0, 0.0], color: [1.0, 0.4, 1.0], camera: CAMERA },
-    Vertex { position: [0.5, 1.0, 0.0], color: [0.4, 0.0, 0.0], camera: CAMERA },
-    Vertex { position: [0.0, -1.0, 0.0], color: [1.0, 1.0, 0.0], camera: CAMERA },
-    Vertex { position: [1.0, 0.0, 0.0], color: [1.0, 0.4, 0.0], camera: CAMERA },
-    Vertex { position: [0.5, 1.0, 0.0], color: [0.4, 0.0, 1.0], camera: CAMERA },
+    Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera: CAMERA, scale_factor: 1.0 },
+    Vertex { position: [1.0, 0.0, 3.0], color: [1.0, 0.4, 1.0], camera: CAMERA, scale_factor: 1.0 },
+    Vertex { position: [0.0, 1.0, 3.0], color: [0.4, 0.0, 1.0], camera: CAMERA, scale_factor: 1.0 },
+    
+    Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera: CAMERA, scale_factor: 1.0 },
+    Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera: CAMERA, scale_factor: 1.0 },
+    Vertex { position: [0.1, 1.0, 5.5], color: [0.0, 0.0, 1.0], camera: CAMERA, scale_factor: 1.0 },
+    
 ];
 
 const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
