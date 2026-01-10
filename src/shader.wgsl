@@ -8,10 +8,10 @@ struct Camera {
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) color: vec3<f32>,
-    @location(2) sin_horizontal: f32,
-    @location(3) cos_horizontal: f32,
-    @location(4) sin_vertical: f32,
-    @location(5) cos_vertical: f32,
+    @location(2) camera_matrix_column_1: vec3<f32>,
+    @location(3) camera_matrix_column_2: vec3<f32>,
+    @location(4) camera_matrix_column_3: vec3<f32>,
+	@location(5) depth_factor: f32,
 };
 
 struct VertexOutput {
@@ -23,6 +23,7 @@ struct VertexOutput {
 fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
+/*
     var inverse_vertical = mat3x3<f32>(
         vec3<f32>(1.0, 0.0, 0.0),
         vec3<f32>(0.0, model.cos_vertical, model.sin_vertical),
@@ -40,14 +41,20 @@ fn vs_main(model: VertexInput) -> VertexOutput {
         vec3<f32>(model.sin_horizontal * model.sin_vertical, model.cos_vertical, model.cos_horizontal * model.sin_vertical),
         vec3<f32>(model.sin_horizontal * model.cos_vertical, -model.sin_vertical, model.cos_horizontal * model.cos_vertical),
     );
-    
+	*/
 
-    var result_1 = inverse * model.position;
-    var result_2 = result_1 / result_1.z;
+	var camera_matrix = mat3x3f(
+		model.camera_matrix_column_1,
+		model.camera_matrix_column_2,
+		model.camera_matrix_column_3,
+	);
+
+    var result = camera_matrix * model.position;
+	var factor = 1.0 / (model.depth_factor * result.z);
 
     out.color = model.color;
-	out.clip_position = vec4<f32>(result_2, 1.0);
-	//out.clip_position = vec4<f32>(result_1, 1.0);
+	out.clip_position = vec4<f32>(result.x * factor, result.y * factor, 0.0, 1.0);
+	//out.clip_position = vec4<f32>(result, 1.0);
 	//out.clip_position = vec4<f32>(model.position, 1.0);
 
 	return out;

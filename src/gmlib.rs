@@ -873,7 +873,7 @@ pub mod matrix {
 
         // Slow as tar shit. https://semath.info/src/inverse-cofactor-ex4.html
         pub fn inverse(&self) -> Self {
-            let determinant_self = self.determinant();
+            let determinant_self = 1.0 / self.determinant();
 
             Self {
                 x_11: Mat3x3 {

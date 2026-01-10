@@ -10,6 +10,9 @@ use winit::{
 };
 use wgpu::util::DeviceExt;
 
+mod camera;
+use camera::*;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -22,8 +25,10 @@ pub struct State {
     window: Arc<Window>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
+    vertices: [Vertex; 6],
     num_vertices: u32,
-    camera: Camera,
+    camera: camera::camera::Camera,
+    camera_matrix: [[f32; 3]; 3],
 }
 
 pub struct App {
@@ -37,10 +42,11 @@ pub struct App {
 pub struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
-    camera: CameraMatrixElements,
+    camera_matrix: [[f32; 3]; 3],
     scale_factor: f32,
 }
 
+/*
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Camera {
@@ -49,18 +55,9 @@ pub struct Camera {
     angle_vertical: f32,
     scale_factor: f32,
 }
+*/
 
-impl Camera {
-    pub fn new(scale_factor: f32) -> Self {
-        Self {
-            position: [0.0, 0.0, 0.0],
-            angle_horizontal: 0.0,
-            angle_vertical: 0.0,
-            scale_factor,
-        }
-    }
-}
-
+/*
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct CameraMatrixElements {
@@ -80,6 +77,7 @@ impl CameraMatrixElements {
         }
     }
 }
+*/
 
 impl Vertex {
     fn descriptor() -> wgpu::VertexBufferLayout<'static> {
@@ -109,54 +107,27 @@ impl Vertex {
                 VertexAttribute {
                     offset: size_of::<[f32; 6]>() as BufferAddress,
                     shader_location: 2,
-                    format: VertexFormat::Float32,
-                },
-                VertexAttribute {
-                    offset: size_of::<[f32; 7]>() as BufferAddress,
-                    shader_location: 3,
-                    format: VertexFormat::Float32,
-                },
-                VertexAttribute {
-                    offset: size_of::<[f32; 8]>() as BufferAddress,
-                    shader_location: 4,
-                    format: VertexFormat::Float32,
+                    format: VertexFormat::Float32x3,
                 },
                 VertexAttribute {
                     offset: size_of::<[f32; 9]>() as BufferAddress,
-                    shader_location: 5,
-                    format: VertexFormat::Float32,
+                    shader_location: 3,
+                    format: VertexFormat::Float32x3,
                 },
                 VertexAttribute {
-                    offset: size_of::<[f32; 10]>() as BufferAddress,
-                    shader_location: 6,
+                    offset: size_of::<[f32; 12]>() as BufferAddress,
+                    shader_location: 4,
+                    format: VertexFormat::Float32x3,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 15]>() as BufferAddress,
+                    shader_location: 5,
                     format: VertexFormat::Float32,
                 },
             ]
         }
     }
 }
-
-use std::f32::consts::*;
-const angle_v: f32 = PI / 8.0;
-const angle_h: f32 = PI / 8.0;
-
-static CAMERA: CameraMatrixElements = CameraMatrixElements {
-    sin_horizontal: 0.383,
-    cos_horizontal: 0.923,
-    sin_vertical: 0.383,
-    cos_vertical: 0.923,
-};
-
-static VERTICES: &[Vertex] = &[
-    Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera: CAMERA, scale_factor: 1.0 },
-    Vertex { position: [1.0, 0.0, 3.0], color: [1.0, 0.4, 1.0], camera: CAMERA, scale_factor: 1.0 },
-    Vertex { position: [0.0, 1.0, 3.0], color: [0.4, 0.0, 1.0], camera: CAMERA, scale_factor: 1.0 },
-    
-    Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera: CAMERA, scale_factor: 1.0 },
-    Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera: CAMERA, scale_factor: 1.0 },
-    Vertex { position: [0.1, 1.0, 5.5], color: [0.0, 0.0, 1.0], camera: CAMERA, scale_factor: 1.0 },
-    
-];
 
 const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
     r: 0.10,
@@ -167,6 +138,8 @@ const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
 
 impl State {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Self> {
+        use std::f32::consts::PI;
+
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
@@ -223,13 +196,27 @@ impl State {
                 bind_group_layouts: &[],
                 push_constant_ranges: &[],
             });
+        
+        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 5.0);
 
-        let camera = Camera::new(1.00);
+        let camera_matrix = camera.matrix();
+
+        let scale_factor = 2.5;
+
+        let vertices = [
+            Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera_matrix, scale_factor },
+            Vertex { position: [1.0, 0.0, 3.0], color: [1.0, 0.4, 1.0], camera_matrix, scale_factor },
+            Vertex { position: [0.0, 1.0, 3.0], color: [0.4, 0.0, 1.0], camera_matrix, scale_factor },
+            
+            Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera_matrix, scale_factor },
+            Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera_matrix, scale_factor },
+            Vertex { position: [0.1, 1.0, 5.5], color: [0.0, 0.0, 1.0], camera_matrix, scale_factor },
+        ];
 
         let vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(VERTICES),
+                contents: bytemuck::cast_slice(&vertices),
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
@@ -275,7 +262,7 @@ impl State {
                 cache: None,
             });
 
-        let num_vertices = VERTICES.len() as u32;
+        let num_vertices = vertices.len() as u32;
 
         Ok(Self {
             surface,
@@ -286,8 +273,10 @@ impl State {
             window,
             render_pipeline,
             vertex_buffer,
+            vertices,
             num_vertices,
             camera,
+            camera_matrix,
         })
     }
 
@@ -300,9 +289,13 @@ impl State {
         }
     }
 
-    pub fn handle_key(&self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
+    pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
+            (KeyCode::KeyW, true) => self.camera.angle_v = self.camera.angle_v + 0.03,
+            (KeyCode::KeyA, true) => self.camera.angle_h = self.camera.angle_h + 0.03,
+            (KeyCode::KeyS, true) => self.camera.angle_v = self.camera.angle_v - 0.03,
+            (KeyCode::KeyD, true) => self.camera.angle_h = self.camera.angle_h - 0.03,
             _ => {}
         }
     }
@@ -349,6 +342,18 @@ impl State {
     }
 
     fn update(&mut self) {
+        let camera_matrix = self.camera.matrix();
+        for i in 0..6 {
+            self.vertices[i].camera_matrix = camera_matrix;
+        }
+
+        self.vertex_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(&self.vertices),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
 
     }
 }

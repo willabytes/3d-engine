@@ -1,6 +1,7 @@
 with (import <nixpkgs> {});
   let
     libPath = with pkgs; lib.makeLibraryPath [
+	  gcc
       libGL
       libxkbcommon
 	  vulkan-headers
@@ -11,9 +12,10 @@ with (import <nixpkgs> {});
   in {
     devShell = with pkgs; mkShell {
       buildInputs = [
+	    gcc
         cargo
-        rustup
         rust-analyzer
+        rustup
       ];
       
       RUST_LOG = "debug";
