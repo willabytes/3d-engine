@@ -53,7 +53,6 @@ impl FrameTimes {
         
         self
     }
-
 }
 
 
@@ -72,42 +71,10 @@ pub struct App {
 pub struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
+    camera_position: [f32; 3],
     camera_matrix: [[f32; 3]; 3],
     scale_factor: f32,
 }
-
-/*
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Camera {
-    position: [f32; 3],
-    angle_horizontal: f32,
-    angle_vertical: f32,
-    scale_factor: f32,
-}
-*/
-
-/*
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct CameraMatrixElements {
-    sin_horizontal: f32,
-    cos_horizontal: f32,
-    sin_vertical: f32,
-    cos_vertical: f32,
-}
-
-impl CameraMatrixElements {
-    fn new(angle_horizontal: f32, angle_vertical: f32) -> Self {
-        Self {
-            sin_horizontal: f32::sin(angle_horizontal),
-            cos_horizontal: f32::cos(angle_horizontal),
-            sin_vertical: f32::sin(angle_horizontal),
-            cos_vertical: f32::cos(angle_horizontal),
-        }
-    }
-}
-*/
 
 impl Vertex {
     fn descriptor() -> wgpu::VertexBufferLayout<'static> {
@@ -152,6 +119,11 @@ impl Vertex {
                 VertexAttribute {
                     offset: size_of::<[f32; 15]>() as BufferAddress,
                     shader_location: 5,
+                    format: VertexFormat::Float32x3,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 18]>() as BufferAddress,
+                    shader_location: 6,
                     format: VertexFormat::Float32,
                 },
             ]
@@ -227,20 +199,20 @@ impl State {
                 push_constant_ranges: &[],
             });
         
-        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 5.0);
+        let camera = camera::camera::Camera::new([0.0, 0.0, 2.0], 0.0, 0.0, 5.0);
 
         let camera_matrix = camera.matrix();
 
-        let scale_factor = 1.0;
+        let scale_factor = 0.5;
 
         let vertices = [
-            Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera_matrix, scale_factor },
-            Vertex { position: [1.0, 0.0, 3.0], color: [1.0, 0.4, 1.0], camera_matrix, scale_factor },
-            Vertex { position: [0.0, 1.0, 3.0], color: [0.4, 0.0, 1.0], camera_matrix, scale_factor },
+            Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [1.0, 0.0, 3.0], color: [1.0, 0.4, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.0, 1.0, 3.0], color: [0.4, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
             
-            Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera_matrix, scale_factor },
-            Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera_matrix, scale_factor },
-            Vertex { position: [0.1, 1.0, 5.5], color: [0.0, 0.0, 1.0], camera_matrix, scale_factor },
+            Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.1, 1.0, 5.5], color: [0.0, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
         ];
 
         let vertex_buffer = device.create_buffer_init(
@@ -331,12 +303,31 @@ impl State {
     }
 
     pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
+        let movement_direction = self.camera.direction_h();
+        let increment = 0.05;
+
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
-            (KeyCode::KeyW, true) => self.camera.angle_v = self.camera.angle_v + 0.03,
-            (KeyCode::KeyA, true) => self.camera.angle_h = self.camera.angle_h + 0.03,
-            (KeyCode::KeyS, true) => self.camera.angle_v = self.camera.angle_v - 0.03,
-            (KeyCode::KeyD, true) => self.camera.angle_h = self.camera.angle_h - 0.03,
+            (KeyCode::KeyW, true) => {
+                self.camera.position[2] += movement_direction[2] * increment;
+                self.camera.position[0] += movement_direction[0] * increment;
+            },
+            (KeyCode::KeyA, true) => {
+                self.camera.position[2] += movement_direction[0] * increment;
+                self.camera.position[0] -= movement_direction[2] * increment;
+            },
+            (KeyCode::KeyS, true) => {
+                self.camera.position[2] -= movement_direction[2] * increment;
+                self.camera.position[0] -= movement_direction[0] * increment;
+            },
+            (KeyCode::KeyD, true) => {
+                self.camera.position[2] -= movement_direction[0] * increment;
+                self.camera.position[0] += movement_direction[2] * increment;
+            },
+            (KeyCode::ArrowUp, true) => self.camera.angle_v = self.camera.angle_v + 0.03,
+            (KeyCode::ArrowLeft, true) => self.camera.angle_h = self.camera.angle_h + 0.03,
+            (KeyCode::ArrowDown, true) => self.camera.angle_v = self.camera.angle_v - 0.03,
+            (KeyCode::ArrowRight, true) => self.camera.angle_h = self.camera.angle_h - 0.03,
             _ => {}
         }
     }
@@ -386,6 +377,7 @@ impl State {
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
         if self.frame_times.delta_time.elapsed() >= std::time::Duration::from_millis(500) {
             println!("{:?}", self.frame_times.sample_size * 2);
+            println!("{:?}\n{:?}", self.camera.position, self.camera.direction_h());
             self.frame_times.sample_size = 0;
             self.frame_times.delta_time = std::time::Instant::now();
         }
@@ -395,9 +387,9 @@ impl State {
         //println!("{:?}", self.delta_time.elapsed());
         //self.delta_time = std::time::Instant::now();
 
-        let camera_matrix = self.camera.matrix();
         for i in 0..6 {
-            self.vertices[i].camera_matrix = camera_matrix;
+            self.vertices[i].camera_matrix = self.camera.matrix();
+            self.vertices[i].camera_position = self.camera.position;
         }
 
         self.vertex_buffer = self.device.create_buffer_init(
