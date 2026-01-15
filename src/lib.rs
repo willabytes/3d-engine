@@ -342,8 +342,8 @@ impl State {
     }
 
     pub fn handle_mouse(&mut self, mouse_delta_h: f64, mouse_delta_v: f64) {
-        self.camera.angle_h += -mouse_delta_h as f32 * self.mouse_sensitivity;
-        self.camera.angle_v += -mouse_delta_v as f32 * self.mouse_sensitivity;
+        self.camera.angle_h += mouse_delta_h as f32 * self.mouse_sensitivity;
+        self.camera.angle_v += mouse_delta_v as f32 * self.mouse_sensitivity;
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

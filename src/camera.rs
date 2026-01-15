@@ -27,14 +27,14 @@ pub mod camera {
             let cos_v = self.angle_v.cos();
 
             [
-                [cos_h,         0.0,    -sin_h       ],
-                [sin_h * sin_v, cos_v,  cos_h * sin_v],
-                [sin_h * cos_v, -sin_v, cos_h * cos_v],
+                [cos_h,     sin_h * sin_v,  sin_h * cos_v],
+                [0.0,       cos_v,          -sin_v       ],
+                [-sin_h,    cos_h * sin_v,  cos_h * cos_v],
             ]
         }
 
         pub fn direction_h(&self) -> [f32; 3] {
-            [-self.angle_h.sin(), 0.0, self.angle_h.cos()]
+            [self.angle_h.sin(), 0.0, self.angle_h.cos()]
         }
     }
 }
