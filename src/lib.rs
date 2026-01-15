@@ -13,9 +13,6 @@ use wgpu::util::DeviceExt;
 mod camera;
 use camera::*;
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-
 pub struct State {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
@@ -25,7 +22,7 @@ pub struct State {
     window: Arc<Window>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    vertices: [Vertex; 6],
+    vertices: [Vertex; 12],
     num_vertices: u32,
     camera: camera::camera::Camera,
     camera_matrix: [[f32; 3]; 3],
@@ -146,10 +143,7 @@ impl State {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            #[cfg(not(target_arch = "wasm32"))]
             backends: wgpu::Backends::PRIMARY,
-            #[cfg(target_arch = "wasm32")]
-            backends: wgpu::Backends::GL,
             ..Default::default()
         });
 
@@ -200,20 +194,39 @@ impl State {
                 push_constant_ranges: &[],
             });
         
-        let camera = camera::camera::Camera::new([0.0, 0.0, 2.0], 0.0, 0.0, 5.0);
+        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 5.0);
 
         let camera_matrix = camera.matrix();
 
         let scale_factor = 1.0;
 
         let vertices = [
+            /*
             Vertex { position: [0.0, 0.0, 5.0], color: [1.0, 1.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [1.0, 0.0, 5.0], color: [1.0, 0.4, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [0.0, 1.0, 5.0], color: [0.4, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [1.0, 0.0, 6.0], color: [1.0, 0.4, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.0, 1.0, 6.0], color: [0.4, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
             
             Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
             Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
             Vertex { position: [0.1, 1.0, 4.5], color: [0.0, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            */
+
+            // Tetrahedron
+            Vertex { position: [-2.0, -0.35, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.5, 0.0, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.8, 0.6, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+
+            Vertex { position: [-1.5, 0.0, 2.0], color: [0.0, 0.8, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-2.0, -0.35, 2.0], color: [0.0, 0.8, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.75, 0.4, 3.0], color: [0.0, 0.6, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            
+            Vertex { position: [-1.5, 0.0, 2.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.75, 0.4, 3.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.8, 0.6, 2.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor },
+
+            Vertex { position: [-2.0, -0.35, 2.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.8, 0.6, 2.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.75, 0.4, 3.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor },
         ];
 
         let vertex_buffer = device.create_buffer_init(
@@ -227,8 +240,7 @@ impl State {
         let render_pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("Render Pipeline"),
-                layout: Some(&render_pipeline_layout),
-                vertex: wgpu::VertexState {
+                layout: Some(&render_pipeline_layout), vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: Some("vs_main"),
                     buffers: &[
@@ -378,7 +390,7 @@ impl State {
             
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..self.num_vertices, 0..1);
+            render_pass.draw(0..self.vertices.len() as u32, 0..1);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -391,7 +403,7 @@ impl State {
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
         if self.frame_times.delta_time.elapsed() >= std::time::Duration::from_millis(500) {
             println!("{:?}", self.frame_times.sample_size * 2);
-            println!("{:?}\n{:?}", self.camera.position, self.camera.direction_h());
+            println!("{:?}\n{:?}\n{:?}\n", self.camera.position, self.camera.direction_h(), self.vertices);
             self.frame_times.sample_size = 0;
             self.frame_times.delta_time = std::time::Instant::now();
         }
@@ -401,7 +413,7 @@ impl State {
         //println!("{:?}", self.delta_time.elapsed());
         //self.delta_time = std::time::Instant::now();
 
-        for i in 0..6 {
+        for i in 0..self.vertices.len() {
             self.vertices[i].camera_matrix = self.camera.matrix();
             self.vertices[i].camera_position = self.camera.position;
         }
@@ -417,17 +429,8 @@ impl State {
 }
 
 impl App {
-    pub fn new(
-        #[cfg(target_arch = "wasm32")]
-        event_loop: &EventLoop<State>,
-    ) -> Self {
-        #[cfg(target_arch = "wasm32")]
-        let proxy = Some(event_loop.create_proxy());
-        Self {
-            state: None,
-            #[cfg(target_arch = "wasm32")]
-            proxy,
-        }
+    pub fn new() -> Self {
+        Self { state: None }
     }
 }
 
