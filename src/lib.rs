@@ -31,6 +31,7 @@ pub struct State {
     camera_matrix: [[f32; 3]; 3],
     delta_time: std::time::Instant,
     frame_times: FrameTimes,
+    mouse_sensitivity: f32,
 }
 
 struct FrameTimes {
@@ -203,16 +204,16 @@ impl State {
 
         let camera_matrix = camera.matrix();
 
-        let scale_factor = 0.5;
+        let scale_factor = 1.0;
 
         let vertices = [
-            Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [1.0, 0.0, 3.0], color: [1.0, 0.4, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [0.0, 1.0, 3.0], color: [0.4, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.0, 0.0, 5.0], color: [1.0, 1.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [1.0, 0.0, 5.0], color: [1.0, 0.4, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.0, 1.0, 5.0], color: [0.4, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
             
             Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
             Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [0.1, 1.0, 5.5], color: [0.0, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [0.1, 1.0, 4.5], color: [0.0, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
         ];
 
         let vertex_buffer = device.create_buffer_init(
@@ -275,6 +276,10 @@ impl State {
             sample_size: 1,
         };
 
+        window.set_cursor_grab(winit::window::CursorGrabMode::Locked);
+
+        let mouse_sensitivity = 0.01;
+
         Ok(Self {
             surface,
             device,
@@ -290,6 +295,7 @@ impl State {
             camera_matrix,
             delta_time,
             frame_times,
+            mouse_sensitivity,
         })
     }
 
@@ -324,12 +330,20 @@ impl State {
                 self.camera.position[2] -= movement_direction[0] * increment;
                 self.camera.position[0] += movement_direction[2] * increment;
             },
+            (KeyCode::Space, true) => self.camera.position[1] += 0.1,
+            (KeyCode::ShiftLeft, true) => self.camera.position[1] -= 0.1,
+            
             (KeyCode::ArrowUp, true) => self.camera.angle_v = self.camera.angle_v + 0.03,
             (KeyCode::ArrowLeft, true) => self.camera.angle_h = self.camera.angle_h + 0.03,
             (KeyCode::ArrowDown, true) => self.camera.angle_v = self.camera.angle_v - 0.03,
             (KeyCode::ArrowRight, true) => self.camera.angle_h = self.camera.angle_h - 0.03,
             _ => {}
         }
+    }
+
+    pub fn handle_mouse(&mut self, mouse_delta_h: f64, mouse_delta_v: f64) {
+        self.camera.angle_h += -mouse_delta_h as f32 * self.mouse_sensitivity;
+        self.camera.angle_v += -mouse_delta_v as f32 * self.mouse_sensitivity;
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -508,6 +522,18 @@ impl ApplicationHandler<State> for App {
                 ..
             } => state.handle_key(event_loop, code, key_state.is_pressed()),
             _ => {} 
+        }
+    }
+
+    fn device_event(&mut self, event_loop: &ActiveEventLoop, device_id: DeviceId, event: winit::event::DeviceEvent) {
+        let state = match &mut self.state {
+            Some(canvas) => canvas,
+            None => return,
+        };
+
+        match event {
+            DeviceEvent::MouseMotion{ delta, } => state.handle_mouse(delta.0, delta.1),
+            _ => {}
         }
     }
 }
