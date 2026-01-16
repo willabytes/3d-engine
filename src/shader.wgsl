@@ -24,6 +24,8 @@ struct VertexOutput {
 fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
+    var render_distance: f32 = 1000.0;
+
 	var camera_matrix = mat3x3f(
 		model.camera_matrix_column_1,
 		model.camera_matrix_column_2,
@@ -31,10 +33,20 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 	);
 
     var result = camera_matrix * (model.position - model.camera_position);
-	var factor = 1.0 / (model.depth_factor * result.z);
+
+    var factor: f32;
+    if result.z > 0.0 {
+        factor = 1.0 / (model.depth_factor * result.z);
+        result.z = result.z / render_distance;
+    } else {
+        factor = 1.0;
+    }
+
+    result.x *= factor;
+    result.y *= factor;
 
     out.color = model.color;
-	out.clip_position = vec4<f32>(result.x * factor, result.y * factor, 0.0, 1.0);
+	out.clip_position = vec4<f32>(result, 1.0);
 
 	return out;
 }

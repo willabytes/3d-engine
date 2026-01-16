@@ -10,6 +10,8 @@ use winit::{
 };
 use wgpu::util::DeviceExt;
 
+use std::f32::consts::PI;
+
 mod camera;
 use camera::*;
 
@@ -349,7 +351,13 @@ impl State {
 
     pub fn handle_mouse(&mut self, mouse_delta_h: f64, mouse_delta_v: f64) {
         self.camera.angle_h += mouse_delta_h as f32 * self.mouse_sensitivity;
-        self.camera.angle_v += mouse_delta_v as f32 * self.mouse_sensitivity;
+
+        // For the sake of not breaking your neck.
+        if self.camera.angle_v > -PI * 0.5 && self.camera.angle_v < PI * 0.5
+            || mouse_delta_v > 0.0 && self.camera.angle_v < -PI * 0.5
+            || mouse_delta_v < 0.0 && self.camera.angle_v > PI * 0.5 {
+                self.camera.angle_v += mouse_delta_v as f32 * self.mouse_sensitivity;
+            }
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -397,7 +405,7 @@ impl State {
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
         if self.frame_times.delta_time.elapsed() >= std::time::Duration::from_millis(500) {
             println!("{:?}", self.frame_times.sample_size as f32 * 2.0);
-            println!("{:?}\n{:?}\n", self.camera.position, self.camera.direction_h());
+            println!("{:?}\n{:?}\ncamera.angle_h: {:?}\ncamera.angle_v: {:?}", self.camera.position, self.camera.direction_h(), self.camera.angle_h, self.camera.angle_v);
             self.frame_times.sample_size = 0;
             self.frame_times.delta_time = std::time::Instant::now();
         }
