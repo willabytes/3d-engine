@@ -37,9 +37,10 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     var factor: f32;
     if result.z > 0.0 {
         factor = 1.0 / (model.depth_factor * result.z);
-        result.z = result.z / render_distance;
+        result.z /= render_distance;
     } else {
         factor = 1.0;
+        result.z /= render_distance;
     }
 
     result.x *= factor;

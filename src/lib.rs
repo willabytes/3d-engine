@@ -15,6 +15,10 @@ use std::f32::consts::PI;
 mod camera;
 use camera::*;
 
+// Consts
+const TWO_PI: f32 = 2.0 * PI;
+const HALF_PI: f32 = 0.5 * PI;
+
 pub struct State {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
@@ -193,7 +197,7 @@ impl State {
                 push_constant_ranges: &[],
             });
         
-        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 5.0);
+        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 0.01, 5.0);
 
         let camera_matrix = camera.matrix();
 
@@ -317,47 +321,40 @@ impl State {
     }
 
     pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
-        let movement_direction = self.camera.direction_h();
+        let movement_direction = self.camera.direction();
         let increment = 0.05;
 
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
-            (KeyCode::KeyW, true) => {
-                self.camera.position[2] += movement_direction[2] * increment;
-                self.camera.position[0] += movement_direction[0] * increment;
-            },
-            (KeyCode::KeyA, true) => {
-                self.camera.position[2] += movement_direction[0] * increment;
-                self.camera.position[0] -= movement_direction[2] * increment;
-            },
-            (KeyCode::KeyS, true) => {
-                self.camera.position[2] -= movement_direction[2] * increment;
-                self.camera.position[0] -= movement_direction[0] * increment;
-            },
-            (KeyCode::KeyD, true) => {
-                self.camera.position[2] -= movement_direction[0] * increment;
-                self.camera.position[0] += movement_direction[2] * increment;
-            },
-            (KeyCode::Space, true) => self.camera.position[1] += 0.1,
-            (KeyCode::ShiftLeft, true) => self.camera.position[1] -= 0.1,
-            
-            (KeyCode::ArrowUp, true) => self.camera.angle_v = self.camera.angle_v + 0.03,
-            (KeyCode::ArrowLeft, true) => self.camera.angle_h = self.camera.angle_h + 0.03,
-            (KeyCode::ArrowDown, true) => self.camera.angle_v = self.camera.angle_v - 0.03,
-            (KeyCode::ArrowRight, true) => self.camera.angle_h = self.camera.angle_h - 0.03,
+
+            // Camera movement
+            (KeyCode::KeyW, true) => self.camera.move_forward(increment),
+            (KeyCode::KeyA, true) => self.camera.move_left(increment),
+            (KeyCode::KeyS, true) => self.camera.move_backward(increment),
+            (KeyCode::KeyD, true) => self.camera.move_right(increment),
+            (KeyCode::Space, true) => self.camera.move_up(increment),
+            (KeyCode::ShiftLeft, true) => self.camera.move_down(increment),
+
             _ => {}
         }
     }
 
     pub fn handle_mouse(&mut self, mouse_delta_h: f64, mouse_delta_v: f64) {
-        self.camera.angle_h += mouse_delta_h as f32 * self.mouse_sensitivity;
+        self.camera.adjust_angle_h(mouse_delta_h as f32);
+        self.camera.adjust_angle_v(mouse_delta_v as f32, HALF_PI);
+        /*self.camera.angle_h += -mouse_delta_h as f32 * self.mouse_sensitivity;
+        if self.camera.angle_h >= TWO_PI { self.camera.angle_h -= TWO_PI; }
+        if self.camera.angle_h <= -TWO_PI { self.camera.angle_h += TWO_PI; }
 
         // For the sake of not breaking your neck.
-        if self.camera.angle_v > -PI * 0.5 && self.camera.angle_v < PI * 0.5
-            || mouse_delta_v > 0.0 && self.camera.angle_v < -PI * 0.5
-            || mouse_delta_v < 0.0 && self.camera.angle_v > PI * 0.5 {
-                self.camera.angle_v += mouse_delta_v as f32 * self.mouse_sensitivity;
-            }
+        let angle_limit: f32 = HALF_PI;
+        if self.camera.angle_v > -angle_limit && self.camera.angle_v < angle_limit
+            || mouse_delta_v > 0.0 && self.camera.angle_v < -angle_limit
+            || mouse_delta_v < 0.0 && self.camera.angle_v > angle_limit {
+                self.camera.angle_v += -mouse_delta_v as f32 * self.mouse_sensitivity;
+                if self.camera.angle_v > angle_limit { self.camera.angle_v = angle_limit - 0.000001; }
+                if self.camera.angle_v < -angle_limit { self.camera.angle_v = -angle_limit + 0.000001; }
+            }*/
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -403,9 +400,10 @@ impl State {
 
     fn update(&mut self) {
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
-        if self.frame_times.delta_time.elapsed() >= std::time::Duration::from_millis(500) {
-            println!("{:?}", self.frame_times.sample_size as f32 * 2.0);
-            println!("{:?}\n{:?}\ncamera.angle_h: {:?}\ncamera.angle_v: {:?}", self.camera.position, self.camera.direction_h(), self.camera.angle_h, self.camera.angle_v);
+        let time_elapsed = self.frame_times.delta_time.elapsed().as_secs_f32();
+        if time_elapsed >= 0.5 {
+            println!("fps: {:?}", self.frame_times.sample_size as f32 / time_elapsed);
+            println!("camera.position: {:?}\ncamera.direction(): {:?}\ncamera.angle_h: {:?}\ncamera.angle_v: {:?}\n", self.camera.position, self.camera.direction(), self.camera.angle_h, self.camera.angle_v);
             self.frame_times.sample_size = 0;
             self.frame_times.delta_time = std::time::Instant::now();
         }
@@ -496,7 +494,7 @@ impl ApplicationHandler<State> for App {
         };
 
         match event {
-            DeviceEvent::MouseMotion{ delta, } => state.handle_mouse(delta.0, delta.1),
+            DeviceEvent::MouseMotion { delta } => state.handle_mouse(-delta.0, -delta.1),
             _ => {}
         }
     }
