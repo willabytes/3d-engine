@@ -342,19 +342,6 @@ impl State {
     pub fn handle_mouse(&mut self, mouse_delta_h: f64, mouse_delta_v: f64) {
         self.camera.adjust_angle_h(mouse_delta_h as f32);
         self.camera.adjust_angle_v(mouse_delta_v as f32, HALF_PI);
-        /*self.camera.angle_h += -mouse_delta_h as f32 * self.mouse_sensitivity;
-        if self.camera.angle_h >= TWO_PI { self.camera.angle_h -= TWO_PI; }
-        if self.camera.angle_h <= -TWO_PI { self.camera.angle_h += TWO_PI; }
-
-        // For the sake of not breaking your neck.
-        let angle_limit: f32 = HALF_PI;
-        if self.camera.angle_v > -angle_limit && self.camera.angle_v < angle_limit
-            || mouse_delta_v > 0.0 && self.camera.angle_v < -angle_limit
-            || mouse_delta_v < 0.0 && self.camera.angle_v > angle_limit {
-                self.camera.angle_v += -mouse_delta_v as f32 * self.mouse_sensitivity;
-                if self.camera.angle_v > angle_limit { self.camera.angle_v = angle_limit - 0.000001; }
-                if self.camera.angle_v < -angle_limit { self.camera.angle_v = -angle_limit + 0.000001; }
-            }*/
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
