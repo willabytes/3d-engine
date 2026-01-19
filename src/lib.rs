@@ -251,7 +251,6 @@ impl State {
             Vertex { position: [0.0, 1.0, -1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
             Vertex { position: [200.0, 1.0, -1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
 
-            /*
             Vertex { position: [0.0, 0.0, 2.0], color: [0.3, 0.1, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
             Vertex { position: [1.0, 1.0, 2.0], color: [0.3, 0.1, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
             Vertex { position: [0.0, 1.0, 3.0], color: [0.3, 0.1, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
@@ -259,7 +258,6 @@ impl State {
             Vertex { position: [0.0, 0.0, 3.0], color: [0.0, 0.7, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
             Vertex { position: [1.0, 1.0, 3.0], color: [0.0, 0.7, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
             Vertex { position: [0.0, 1.0, 4.0], color: [0.0, 0.7, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
-            */
         );
 
 
