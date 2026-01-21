@@ -1228,7 +1228,7 @@ pub mod matrix {
             }
         }
 
-        pub fn rotate_offset(point: Vec3, axis: Vec3, offset: Vec3, angle: f32) -> Vec3 {
+        pub fn rotate_offset(point: Vec3, axis: Vec3, angle: f32, offset: Vec3) -> Vec3 {
             Self::rotate(point - offset, axis, angle) + offset
         }
 

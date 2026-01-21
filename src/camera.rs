@@ -133,6 +133,40 @@ pub mod camera {
             self.position[0] -= camera_direction[0] * increment;
             self.position[2] -= camera_direction[2] * increment;
         }
+    }
 
+    #[repr(C)]
+    #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+    pub struct CameraUniform {
+        pub position: [f32; 3],
+        _padding_1: [u32; 1],
+        pub matrix_row_1: [f32; 3],
+        _padding_2: [u32; 1],
+        pub matrix_row_2: [f32; 3],
+        _padding_3: [u32; 1],
+        pub matrix_row_3: [f32; 3],
+        _padding_4: [u32; 1],
+    }
+
+    impl CameraUniform {
+        pub fn new(camera: Camera) -> CameraUniform {
+            CameraUniform {
+                position: camera.position,
+                _padding_1: [0; 1],
+                matrix_row_1: camera.matrix()[0],
+                _padding_2: [0; 1],
+                matrix_row_2: camera.matrix()[1],
+                _padding_3: [0; 1],
+                matrix_row_3: camera.matrix()[2],
+                _padding_4: [0; 1],
+            }
+        }
+
+        pub fn update(&mut self, camera: Camera) {
+            self.position = camera.position;
+            self.matrix_row_1 = camera.matrix()[0];
+            self.matrix_row_2 = camera.matrix()[1];
+            self.matrix_row_3 = camera.matrix()[2];
+        }
     }
 }

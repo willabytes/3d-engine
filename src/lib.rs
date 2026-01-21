@@ -15,6 +15,9 @@ use std::f32::consts::PI;
 mod camera;
 use camera::*;
 
+mod object;
+use object::*;
+
 // Consts
 const TWO_PI: f32 = 2.0 * PI;
 const HALF_PI: f32 = 0.5 * PI;
@@ -34,6 +37,9 @@ pub struct State {
     delta_time: std::time::Instant,
     frame_times: FrameTimes,
     mouse_sensitivity: f32,
+    camera_buffer: wgpu::Buffer,
+    camera_uniform: camera::camera::CameraUniform,
+    camera_bind_group: wgpu::BindGroup,
 }
 
 struct FrameTimes {
@@ -202,17 +208,61 @@ impl State {
             source: wgpu::ShaderSource::Wgsl(include_str!("./shader.wgsl").into()),
         });
 
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
-                push_constant_ranges: &[],
-            });
-        
-        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 0.005, 5.0);
+        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 0.005, 1.0);
 
         let camera_matrix = camera.matrix();
 
+        let mut camera_uniform = camera::camera::CameraUniform::new(camera);
+
+        let camera_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Camera buffer"),
+                contents: bytemuck::cast_slice(&[camera_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        let camera_bind_group_layout = device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    }
+                ],
+                label: Some("Camera bind group layout"),
+            }
+        );
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: camera_buffer.as_entire_binding(),
+                }
+            ],
+            label: Some("Camera bind group"),
+        });
+
+        let render_pipeline_layout = device.create_pipeline_layout(
+            &wgpu::PipelineLayoutDescriptor {
+                label: Some("Render Pipeline Layout"),
+                bind_group_layouts: &[
+                    &camera_bind_group_layout,
+                ],
+                push_constant_ranges: &[],
+            }
+        );
+
+        println!("{}", size_of::<camera::camera::CameraUniform>());
+        
         let scale_factor = 1.25;
         let normal = [0.0, 0.0, 0.0];
         let light_source = [-1.5, 0.0, 1.0];
@@ -271,7 +321,7 @@ impl State {
 
         let render_pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
+                label: Some("Render pipeline"),
                 layout: Some(&render_pipeline_layout), vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: Some("vs_main"),
@@ -337,6 +387,9 @@ impl State {
             delta_time,
             frame_times,
             mouse_sensitivity,
+            camera_buffer,
+            camera_uniform,
+            camera_bind_group,
         })
     }
 
@@ -404,6 +457,7 @@ impl State {
             });
             
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..self.vertices.len() as u32, 0..1);
         }
@@ -420,16 +474,25 @@ impl State {
         if time_elapsed >= 0.5 {
             println!("fps: {:?}", self.frame_times.sample_size as f32 / time_elapsed);
             println!("camera.position: {:?}\ncamera.direction(): {:?}\ncamera.angle_h: {:?}\ncamera.angle_v: {:?}\n", self.camera.position, self.camera.direction(), self.camera.angle_h, self.camera.angle_v);
+            //println!("{:?}", self.camera_uniform.position);
             self.frame_times.sample_size = 0;
             self.frame_times.delta_time = std::time::Instant::now();
         }
 
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
         
+        self.camera_uniform.update(self.camera);
+        
         for i in 0..self.vertices.len() {
             self.vertices[i].camera_matrix = self.camera.matrix();
             self.vertices[i].camera_position = self.camera.position;
         }
+
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
+        );
 
         self.vertex_buffer = self.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {

@@ -1,9 +1,16 @@
-struct Camera {
+struct CameraUniform {
     position: vec3<f32>,
-    angle_horizontal: f32,
-    angle_vertical: f32,
-    scale_factor: f32,
+    matrix: mat3x3<f32>,
+    /*
+    matrix_row_1: vec3<f32>,
+    matrix_row_2: vec3<f32>,
+    matrix_row_3: vec3<f32>,
+    */
+    //scale_factor: f32,
 }
+
+@group(0) @binding(0)
+var<uniform> camera: CameraUniform;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -26,13 +33,15 @@ struct VertexOutput {
 fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
+    /*
 	var camera_matrix = mat3x3<f32>(
-		model.camera_matrix_row_1,
-		model.camera_matrix_row_2,
-		model.camera_matrix_row_3,
+		camera.matrix_row_1,
+		camera.matrix_row_2,
+		camera.matrix_row_3,
 	);
+    */
 
-    var result = camera_matrix * (model.position - model.camera_position);
+    var result = camera.matrix * (model.position - camera.position);
 
 	out.clip_position = vec4<f32>(result, result.z * model.depth_factor);
 
